@@ -55,7 +55,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) *PipelineRun {
 		Namespace:   uns.GetNamespace(),
 		Labels:      uns.GetLabels(),
 		Annotations: uns.GetAnnotations(),
-		CreatedAt:   uns.GetCreationTimestamp().Format(time.RFC1123),
+		CreatedAt:   uns.GetCreationTimestamp().Format(time.RFC3339),
 		UUID:        string(uns.GetUID()),
 		Status:      NotStarted,
 	}
@@ -128,14 +128,14 @@ func (p *PipelineRun) GetStartedAtString() string {
 	if p.StartedAt == nil {
 		return ""
 	}
-	return p.StartedAt.Format(time.RFC1123)
+	return p.StartedAt.Format(time.RFC3339)
 }
 
 func (p *PipelineRun) GetCompletedAtString() string {
 	if p.CompletedAt == nil {
 		return ""
 	}
-	return p.CompletedAt.Format(time.RFC1123)
+	return p.CompletedAt.Format(time.RFC3339)
 }
 
 func (p *PipelineRun) String() string {
