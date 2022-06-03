@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gomodule/redigo/redis"
 )
@@ -43,7 +44,11 @@ func (r *RedisKeyInformer) Start() {
 				case <-r.ctx.Done():
 					return
 				case msg := <-cMsg:
-					fmt.Printf("%s === %s\n", msg.Channel, string(msg.Data))
+					if strings.HasSuffix(msg.Channel, ":json.set") {
+						fmt.Println("set event " + string(msg.Data))
+					} else if strings.HasSuffix(msg.Channel, ":json.del") {
+						fmt.Println("del event " + string(msg.Data))
+					}
 				case err := <-cErr:
 					fmt.Println(err)
 				}
