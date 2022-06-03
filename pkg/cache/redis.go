@@ -28,37 +28,37 @@ func NewRedisKeyInformer(ctx context.Context, addr string) (*RedisKeyInformer, e
 		return nil, err
 	}
 
-	go ri.do()
-
 	return ri, nil
 }
 
-func (r *RedisKeyInformer) do() {
-	cMsg := make(chan redis.Message, 100)
-	cErr := make(chan error)
+func (r *RedisKeyInformer) Start() {
 	go func() {
+		cMsg := make(chan redis.Message, 100)
+		cErr := make(chan error)
+		go func() {
+			for {
+				select {
+				case <-r.ctx.Done():
+					r.conn.Close()
+					return
+				case msg := <-cMsg:
+					fmt.Println(msg)
+				case err := <-cErr:
+					fmt.Println(err)
+				}
+			}
+		}()
+
 		for {
-			select {
-			case <-r.ctx.Done():
-				r.conn.Close()
-				return
-			case msg := <-cMsg:
-				fmt.Println(msg)
-			case err := <-cErr:
-				fmt.Println(err)
+			// psc.Receive is a blocking call
+			switch n := r.psc.Receive().(type) {
+			case error:
+				cErr <- n
+			case redis.Message:
+				cMsg <- n
+			default:
+				// fmt.Printf("%v\n", n)
 			}
 		}
 	}()
-
-	for {
-		// psc.Receive is a blocking call
-		switch n := r.psc.Receive().(type) {
-		case error:
-			cErr <- n
-		case redis.Message:
-			cMsg <- n
-		default:
-			// fmt.Printf("%v\n", n)
-		}
-	}
 }
