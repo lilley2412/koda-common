@@ -61,7 +61,7 @@ func NewRedisKeyInformer(ctx context.Context, addr string) (*RedisKeyInformer, e
 func (r *RedisKeyInformer) Start() {
 	go func() {
 		defer r.conn.Close()
-		cMsg := make(chan redis.Message, 100)
+		cMsg := make(chan *redis.Message, 100)
 		cErr := make(chan error)
 		go func() {
 			for {
@@ -86,7 +86,7 @@ func (r *RedisKeyInformer) Start() {
 			case error:
 				cErr <- n
 			case redis.Message:
-				cMsg <- n
+				cMsg <- &n
 			default:
 				// fmt.Printf("%v\n", n)
 			}
