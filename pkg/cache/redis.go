@@ -25,7 +25,7 @@ func NewRedisKeyInformer(ctx context.Context, addr string) (*RedisKeyInformer, e
 
 	ri.psc = redis.PubSubConn{Conn: conn}
 
-	if err := ri.psc.PSubscribe(redis.Args{}.AddFlat([]string{"*"})...); err != nil {
+	if err := ri.psc.PSubscribe(redis.Args{}.AddFlat([]string{"__keyevent*"})...); err != nil {
 		return nil, err
 	}
 
