@@ -13,11 +13,36 @@ type RedisKeyInformer struct {
 	conn redis.Conn
 	psc  redis.PubSubConn
 	ctx  context.Context
+	C    <-chan *RedisEvent
+	_c   chan *RedisEvent
+}
+
+type EventType int
+
+const (
+	Set EventType = iota
+	Del
+)
+
+func (e EventType) String() string {
+	switch e {
+	case Set:
+		return "set"
+	case Del:
+		return "del"
+	}
+	return "unknown"
+}
+
+type RedisEvent struct {
+	Key  string
+	Type EventType
 }
 
 // watches key events
 func NewRedisKeyInformer(ctx context.Context, addr string) (*RedisKeyInformer, error) {
-	ri := &RedisKeyInformer{addr: addr, ctx: ctx}
+	ri := &RedisKeyInformer{addr: addr, ctx: ctx, _c: make(chan *RedisEvent, 1000)}
+	ri.C = ri._c
 	conn, err := redis.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -45,9 +70,9 @@ func (r *RedisKeyInformer) Start() {
 					return
 				case msg := <-cMsg:
 					if strings.HasSuffix(msg.Channel, ":json.set") {
-						fmt.Println("set event " + string(msg.Data))
+						r._c <- &RedisEvent{Key: string(msg.Data), Type: Set}
 					} else if strings.HasSuffix(msg.Channel, ":json.del") {
-						fmt.Println("del event " + string(msg.Data))
+						r._c <- &RedisEvent{Key: string(msg.Data), Type: Del}
 					}
 				case err := <-cErr:
 					fmt.Println(err)
