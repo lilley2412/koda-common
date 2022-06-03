@@ -3,6 +3,7 @@ module github.com/lilley2412/koda-common
 go 1.18
 
 require (
+	github.com/gomodule/redigo v1.8.8
 	github.com/rs/zerolog v1.26.1
 	k8s.io/apimachinery v0.24.1
 	k8s.io/client-go v0.24.1
