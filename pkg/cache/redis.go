@@ -34,16 +34,16 @@ func NewRedisKeyInformer(ctx context.Context, addr string) (*RedisKeyInformer, e
 
 func (r *RedisKeyInformer) Start() {
 	go func() {
+		defer r.conn.Close()
 		cMsg := make(chan redis.Message, 100)
 		cErr := make(chan error)
 		go func() {
 			for {
 				select {
 				case <-r.ctx.Done():
-					r.conn.Close()
 					return
 				case msg := <-cMsg:
-					fmt.Println(msg)
+					fmt.Printf("%s %s\n", msg.Channel, string(msg.Data))
 				case err := <-cErr:
 					fmt.Println(err)
 				}
