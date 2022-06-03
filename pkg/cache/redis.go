@@ -14,6 +14,7 @@ type RedisKeyInformer struct {
 	ctx  context.Context
 }
 
+// watches key events
 func NewRedisKeyInformer(ctx context.Context, addr string) (*RedisKeyInformer, error) {
 	ri := &RedisKeyInformer{addr: addr, ctx: ctx}
 	conn, err := redis.Dial("tcp", addr)
