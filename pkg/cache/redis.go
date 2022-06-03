@@ -43,7 +43,7 @@ func (r *RedisKeyInformer) Start() {
 				case <-r.ctx.Done():
 					return
 				case msg := <-cMsg:
-					fmt.Printf("%s %s\n", msg.Channel, string(msg.Data))
+					fmt.Printf("%s === %s\n", msg.Channel, string(msg.Data))
 				case err := <-cErr:
 					fmt.Println(err)
 				}
