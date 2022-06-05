@@ -16,7 +16,7 @@ type PipelineRun struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	CompletedAt *time.Time        `json:"completedAt,omitempty"`
 	StartedAt   *time.Time        `json:"startedAt,omitempty"`
-	CreatedAt   string            `json:"createdAt,omitempty"`
+	CreatedAt   time.Time         `json:"createdAt,omitempty"`
 	Status      PipelineStatus    `json:"status,omitempty"`
 }
 
@@ -55,7 +55,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) *PipelineRun {
 		Namespace:   uns.GetNamespace(),
 		Labels:      uns.GetLabels(),
 		Annotations: uns.GetAnnotations(),
-		CreatedAt:   uns.GetCreationTimestamp().Format(time.RFC3339),
+		CreatedAt:   uns.GetCreationTimestamp().Time,
 		UUID:        string(uns.GetUID()),
 		Status:      NotStarted,
 	}
