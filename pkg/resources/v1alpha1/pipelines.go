@@ -142,7 +142,9 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 			return nil, err
 		}
 		for _, status := range prs {
-			fmt.Println(status.Status.Conditions[0])
+			for _, c := range status.Status.Conditions {
+				fmt.Println(c)
+			}
 		}
 	}
 	// taskRuns := make(map[string]interface{})
