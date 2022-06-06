@@ -1,10 +1,12 @@
 package v1alpha1
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -18,6 +20,11 @@ type PipelineRun struct {
 	StartedAt   *time.Time        `json:"startedAt,omitempty"`
 	CreatedAt   time.Time         `json:"createdAt,omitempty"`
 	Status      PipelineStatus    `json:"status,omitempty"`
+	Tasks       []*TaskRun        `json:"status,tasks"`
+}
+
+type TaskRun struct {
+	Status PipelineStatus `json:"status,omitempty"`
 }
 
 type PipelineStatus int16
@@ -47,7 +54,7 @@ func (p PipelineStatus) String() string {
 	return "unknown"
 }
 
-func NewPipelineRun(uns *unstructured.Unstructured) *PipelineRun {
+func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 	// defer instrument.Duration(instrument.Track("v1alpha1.NewPipelineRun"))
 
 	pr := &PipelineRun{
@@ -59,6 +66,8 @@ func NewPipelineRun(uns *unstructured.Unstructured) *PipelineRun {
 		UUID:        string(uns.GetUID()),
 		Status:      NotStarted,
 	}
+
+	uns.UnstructuredContent()
 
 	var spec map[string]interface{}
 	specInt, ok := uns.Object["spec"]
@@ -75,10 +84,10 @@ func NewPipelineRun(uns *unstructured.Unstructured) *PipelineRun {
 	stInt, ok := uns.Object["status"]
 	if ok {
 		if st, ok = stInt.(map[string]interface{}); !ok {
-			return pr
+			return pr, nil
 		}
 	} else {
-		return pr
+		return pr, nil
 	}
 
 	if r, ok := st["completionTime"]; ok {
@@ -120,6 +129,30 @@ func NewPipelineRun(uns *unstructured.Unstructured) *PipelineRun {
 			}
 		}
 	}
+
+	// prs := v1beta1.PipelineRunStatus{}
+	prs := make(map[string]*v1beta1.PipelineRunTaskRunStatus)
+	if truns, ok := st["taskRuns"]; ok {
+		d, err := json.Marshal(truns)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(d, &prs)
+		if err != nil {
+			return nil, err
+		}
+		for _, status := range prs {
+			fmt.Println(status.Status.Conditions[0])
+		}
+	}
+	// taskRuns := make(map[string]interface{})
+	// if truns, ok := st["taskRuns"]; ok {
+	// 	if taskRuns, ok = truns.(map[string]interface{}); ok {
+	// 		for _, t := range taskRuns {
+	// 			if task, ok := t.()
+	// 		}
+	// 	}
+	// }
 
 	return pr
 }
