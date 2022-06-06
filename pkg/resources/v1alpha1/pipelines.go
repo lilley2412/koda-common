@@ -154,7 +154,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 	// 	}
 	// }
 
-	return pr
+	return pr, nil
 }
 
 func (p *PipelineRun) GetStartedAtString() string {
