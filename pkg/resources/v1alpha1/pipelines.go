@@ -142,9 +142,32 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 			return nil, err
 		}
 		for _, status := range prs {
-			for _, c := range status.Status.Conditions {
-				fmt.Println(c)
+			if status.Status != nil && len(status.Status.Conditions) > 0 {
+				cond := status.Status.Conditions[0]
+				fmt.Printf("%+v\n", cond)
+				if strings.EqualFold(cond.Reason, "running") {
+					pr.Tasks = append(pr.Tasks, &TaskRun{
+						Status: Running,
+					})
+					continue
+				}
+				if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "True") {
+					pr.Tasks = append(pr.Tasks, &TaskRun{
+						Status: Success,
+					})
+					continue
+				} else if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "False") {
+					pr.Tasks = append(pr.Tasks, &TaskRun{
+						Status: Failed,
+					})
+					continue
+				}
 			}
+			// for _, c := range status.Status.Conditions {
+			// 	pr.Tasks = append(pr.Tasks, &TaskRun{
+			// 		Status: ,
+			// 	})
+			// }
 		}
 	}
 	// taskRuns := make(map[string]interface{})
