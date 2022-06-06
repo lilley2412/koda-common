@@ -11,16 +11,21 @@ import (
 )
 
 type PipelineRun struct {
-	UUID        string            `json:"uuid"`
-	Name        string            `json:"name"`
-	Namespace   string            `json:"namespace"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-	CompletedAt *time.Time        `json:"completedAt,omitempty"`
-	StartedAt   *time.Time        `json:"startedAt,omitempty"`
-	CreatedAt   time.Time         `json:"createdAt,omitempty"`
-	Status      PipelineStatus    `json:"status,omitempty"`
-	Tasks       []*TaskRun        `json:"status,tasks"`
+	UUID           string            `json:"uuid"`
+	Name           string            `json:"name"`
+	Namespace      string            `json:"namespace"`
+	Labels         map[string]string `json:"labels,omitempty"`
+	Annotations    map[string]string `json:"annotations,omitempty"`
+	CompletedAt    *time.Time        `json:"completedAt,omitempty"`
+	StartedAt      *time.Time        `json:"startedAt,omitempty"`
+	CreatedAt      time.Time         `json:"createdAt,omitempty"`
+	Status         PipelineStatus    `json:"status,omitempty"`
+	Tasks          []*TaskRun        `json:"tasks,omitempty"`
+	TotalTasks     int
+	RunningTasks   int
+	PendingTasks   int
+	FailedTasks    int
+	SucceededTasks int
 }
 
 type TaskRun struct {
@@ -36,6 +41,7 @@ const (
 	Running
 	Success
 	Failed
+	Pending
 )
 
 func (p PipelineStatus) String() string {
@@ -50,6 +56,8 @@ func (p PipelineStatus) String() string {
 		return "Success"
 	case Failed:
 		return "Failed"
+	case Pending:
+		return "Pending"
 	}
 	return "unknown"
 }
@@ -142,26 +150,45 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 			return nil, err
 		}
 		for _, status := range prs {
+			pr.TotalTasks++
 			if status.Status != nil && len(status.Status.Conditions) > 0 {
 				cond := status.Status.Conditions[0]
-				fmt.Printf("%+v\n", cond)
+
 				if strings.EqualFold(cond.Reason, "running") {
 					pr.Tasks = append(pr.Tasks, &TaskRun{
 						Status: Running,
 					})
+					pr.RunningTasks++
 					continue
 				}
+
+				if strings.EqualFold(cond.Reason, "pending") {
+					pr.Tasks = append(pr.Tasks, &TaskRun{
+						Status: Pending,
+					})
+					pr.PendingTasks++
+					continue
+				}
+
 				if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "True") {
 					pr.Tasks = append(pr.Tasks, &TaskRun{
 						Status: Success,
 					})
+					pr.SucceededTasks++
 					continue
-				} else if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "False") {
+				}
+
+				if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "False") {
 					pr.Tasks = append(pr.Tasks, &TaskRun{
 						Status: Failed,
 					})
+					pr.FailedTasks++
 					continue
 				}
+			} else {
+				pr.Tasks = append(pr.Tasks, &TaskRun{
+					Status: NotStarted,
+				})
 			}
 			// for _, c := range status.Status.Conditions {
 			// 	pr.Tasks = append(pr.Tasks, &TaskRun{
