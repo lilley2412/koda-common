@@ -228,7 +228,7 @@ func (p *PipelineRun) String() string {
 }
 
 func (p *PipelineRun) NotEqual(other *PipelineRun) bool {
-	return p.StartedAtNotEqual(other) || p.CompletedAtNotEqual(other) || p.StartedAtNotEqual(other)
+	return p.StartedAtNotEqual(other) || p.CompletedAtNotEqual(other) || p.StartedAtNotEqual(other) || p.TaskStatusNotEqual(other)
 }
 
 func (p *PipelineRun) StatusNotEqual(other *PipelineRun) bool {
@@ -241,6 +241,10 @@ func (p *PipelineRun) CompletedAtNotEqual(other *PipelineRun) bool {
 
 func (p *PipelineRun) StartedAtNotEqual(other *PipelineRun) bool {
 	return p.GetStartedAtString() != other.GetStartedAtString()
+}
+
+func (p *PipelineRun) TaskStatusNotEqual(other *PipelineRun) bool {
+	return p.TotalTasks != other.TotalTasks || p.RunningTasks != other.RunningTasks
 }
 
 // func (p *PipelineRun) SetStatus(status map[string]interface{}) {
