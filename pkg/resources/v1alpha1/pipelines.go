@@ -21,11 +21,11 @@ type PipelineRun struct {
 	CreatedAt      time.Time         `json:"createdAt,omitempty"`
 	Status         PipelineStatus    `json:"status,omitempty"`
 	Tasks          []*TaskRun        `json:"tasks,omitempty"`
-	TotalTasks     int
-	RunningTasks   int
-	PendingTasks   int
-	FailedTasks    int
-	SucceededTasks int
+	TotalTasks     int               `json:"totalTasks,omitempty"`
+	RunningTasks   int               `json:"runningTasks,omitempty"`
+	PendingTasks   int               `json:"pendingTasks,omitempty"`
+	FailedTasks    int               `json:"failedTasks,omitempty"`
+	SucceededTasks int               `json:"succeededTasks,omitempty"`
 }
 
 type TaskRun struct {
