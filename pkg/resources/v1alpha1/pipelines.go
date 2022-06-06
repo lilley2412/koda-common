@@ -88,115 +88,137 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 		}
 	}
 
-	var st map[string]interface{}
+	var pStatus v1beta1.PipelineRunStatus
 	stInt, ok := uns.Object["status"]
 	if ok {
-		if st, ok = stInt.(map[string]interface{}); !ok {
-			return pr, nil
+		d, err := json.Marshal(stInt)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(d, &pStatus)
+		if err != nil {
+			return nil, err
 		}
 	} else {
 		return pr, nil
 	}
 
-	if r, ok := st["completionTime"]; ok {
-		t, err := time.Parse(time.RFC3339, fmt.Sprintf("%s", r))
-		if err == nil {
-			pr.CompletedAt = &t
-		}
+	// if ok {
+	// 	if st, ok = stInt.(map[string]interface{}); !ok {
+	// 		return pr, nil
+	// 	}
+	// } else {
+	// 	return pr, nil
+	// }
+	if pStatus.CompletionTime != nil {
+		pr.CompletedAt = &pStatus.CompletionTime.Time
 	}
 
-	if r, ok := st["startTime"]; ok {
-		t, err := time.Parse(time.RFC3339, fmt.Sprintf("%s", r))
-		if err == nil {
-			pr.StartedAt = &t
-		}
+	if pStatus.StartTime != nil {
+		pr.StartedAt = &pStatus.StartTime.Time
 	}
 
-	var conditions []interface{}
-	if c, ok := st["conditions"]; ok {
-		if conditions, ok = c.([]interface{}); ok {
-			for _, conditionInt := range conditions {
-				if condition, ok := conditionInt.(map[string]interface{}); ok {
-					reason := fmt.Sprintf("%s", condition["reason"])
-					status := fmt.Sprintf("%s", condition["status"])
-					cType := fmt.Sprintf("%s", condition["type"])
-					if strings.EqualFold(cType, "Succeeded") {
-						if strings.EqualFold(reason, "Running") {
-							pr.Status = Running
-						} else if strings.EqualFold(reason, "Succeeded") {
-							if strings.EqualFold(status, "True") {
-								pr.Status = Success
-							} else {
-								pr.Status = Failed
-							}
-						} else if strings.EqualFold(reason, "Failed") {
-							pr.Status = Failed
-						}
-					}
+	// if r, ok := st["completionTime"]; ok {
+	// 	t, err := time.Parse(time.RFC3339, fmt.Sprintf("%s", r))
+	// 	if err == nil {
+	// 		pr.CompletedAt = &t
+	// 	}
+	// }
+
+	// if r, ok := st["startTime"]; ok {
+	// 	t, err := time.Parse(time.RFC3339, fmt.Sprintf("%s", r))
+	// 	if err == nil {
+	// 		pr.StartedAt = &t
+	// 	}
+	// }
+
+	// var conditions []interface{}
+	// if c, ok := st["conditions"]; ok {
+	// 	if conditions, ok = c.([]interface{}); ok {
+	for _, condition := range pStatus.Conditions {
+		// if condition, ok := conditionInt.(map[string]interface{}); ok {
+		// reason := fmt.Sprintf("%s", condition["reason"])
+		// status := fmt.Sprintf("%s", condition["status"])
+		// cType := fmt.Sprintf("%s", condition["type"])
+		if strings.EqualFold(string(condition.Type), "Succeeded") {
+			if strings.EqualFold(condition.Reason, "Running") {
+				pr.Status = Running
+			} else if strings.EqualFold(condition.Reason, "Succeeded") {
+				if strings.EqualFold(string(condition.Status), "True") {
+					pr.Status = Success
+				} else {
+					pr.Status = Failed
 				}
+			} else if strings.EqualFold(condition.Reason, "Failed") {
+				pr.Status = Failed
 			}
 		}
 	}
+	// 	}
+	// }
+	// }
 
 	// prs := v1beta1.PipelineRunStatus{}
-	prs := make(map[string]*v1beta1.PipelineRunTaskRunStatus)
-	if truns, ok := st["taskRuns"]; ok {
-		d, err := json.Marshal(truns)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(d, &prs)
-		if err != nil {
-			return nil, err
-		}
-		for _, status := range prs {
-			pr.TotalTasks++
-			if status.Status != nil && len(status.Status.Conditions) > 0 {
-				cond := status.Status.Conditions[0]
+	// prs := make(map[string]*v1beta1.PipelineRunTaskRunStatus)
+	// if truns, ok := st["taskRuns"]; ok {
+	// 	d, err := json.Marshal(truns)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	err = json.Unmarshal(d, &prs)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-				if strings.EqualFold(cond.Reason, "running") {
-					pr.Tasks = append(pr.Tasks, &TaskRun{
-						Status: Running,
-					})
-					pr.RunningTasks++
-					continue
-				}
+	pr.TotalTasks = len(pStatus.PipelineSpec.Tasks)
 
-				if strings.EqualFold(cond.Reason, "pending") {
-					pr.Tasks = append(pr.Tasks, &TaskRun{
-						Status: Pending,
-					})
-					pr.PendingTasks++
-					continue
-				}
+	for _, status := range pStatus.TaskRuns {
+		if status.Status != nil && len(status.Status.Conditions) > 0 {
+			cond := status.Status.Conditions[0]
 
-				if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "True") {
-					pr.Tasks = append(pr.Tasks, &TaskRun{
-						Status: Success,
-					})
-					pr.SucceededTasks++
-					continue
-				}
-
-				if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "False") {
-					pr.Tasks = append(pr.Tasks, &TaskRun{
-						Status: Failed,
-					})
-					pr.FailedTasks++
-					continue
-				}
-			} else {
+			if strings.EqualFold(cond.Reason, "running") {
 				pr.Tasks = append(pr.Tasks, &TaskRun{
-					Status: NotStarted,
+					Status: Running,
 				})
+				pr.RunningTasks++
+				continue
 			}
-			// for _, c := range status.Status.Conditions {
-			// 	pr.Tasks = append(pr.Tasks, &TaskRun{
-			// 		Status: ,
-			// 	})
-			// }
+
+			if strings.EqualFold(cond.Reason, "pending") {
+				pr.Tasks = append(pr.Tasks, &TaskRun{
+					Status: Pending,
+				})
+				pr.PendingTasks++
+				continue
+			}
+
+			if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "True") {
+				pr.Tasks = append(pr.Tasks, &TaskRun{
+					Status: Success,
+				})
+				pr.SucceededTasks++
+				continue
+			}
+
+			if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "False") {
+				pr.Tasks = append(pr.Tasks, &TaskRun{
+					Status: Failed,
+				})
+				pr.FailedTasks++
+				continue
+			}
+		} else {
+			pr.Tasks = append(pr.Tasks, &TaskRun{
+				Status: NotStarted,
+			})
 		}
+		// for _, c := range status.Status.Conditions {
+		// 	pr.Tasks = append(pr.Tasks, &TaskRun{
+		// 		Status: ,
+		// 	})
+		// }
 	}
+	// }
 	// taskRuns := make(map[string]interface{})
 	// if truns, ok := st["taskRuns"]; ok {
 	// 	if taskRuns, ok = truns.(map[string]interface{}); ok {
