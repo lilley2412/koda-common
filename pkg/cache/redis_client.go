@@ -39,6 +39,7 @@ func JSONGetBytes(key string) ([]byte, error) {
 	defer con.Close()
 
 	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(con)
 	data, err := redis.Bytes(rh.JSONGet("all-pr-index", "."))
 	if err != nil {
 		return nil, fmt.Errorf("failed to redis.JSONGet key %s: %s", key, err)
