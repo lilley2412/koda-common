@@ -34,7 +34,7 @@ func NewRedisManager() *RedisManager {
 	return &RedisManager{}
 }
 
-func (r *RedisManager) JSONGetBytes(key string) ([]byte, error) {
+func JSONGetBytes(key string) ([]byte, error) {
 	con := NewRedisPoolConnection()
 	defer con.Close()
 
