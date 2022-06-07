@@ -26,6 +26,7 @@ type PipelineRun struct {
 	PendingTasks   int               `json:"pendingTasks,omitempty"`
 	FailedTasks    int               `json:"failedTasks,omitempty"`
 	SucceededTasks int               `json:"succeededTasks,omitempty"`
+	CompleteTasks  int               `json:"completeTasks,omitempty"`
 }
 
 type TaskRun struct {
@@ -35,13 +36,13 @@ type TaskRun struct {
 type PipelineStatus int16
 
 const (
-	Undefined PipelineStatus = iota
-	PipelineRunPending
-	NotStarted
-	Running
-	Success
-	Failed
-	Pending
+	Undefined          PipelineStatus = iota
+	PipelineRunPending                // 1
+	NotStarted                        // 2
+	Running                           // 3
+	Success                           // 4
+	Failed                            // 5
+	Pending                           // 6
 )
 
 func (p PipelineStatus) String() string {
@@ -218,6 +219,8 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 		// 	})
 		// }
 	}
+
+	pr.CompleteTasks = pr.FailedTasks + pr.SucceededTasks
 	// }
 	// taskRuns := make(map[string]interface{})
 	// if truns, ok := st["taskRuns"]; ok {

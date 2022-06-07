@@ -1,13 +1,18 @@
 package cache
 
 import (
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/nitishm/go-rejson/v4"
 )
 
 var pool *redis.Pool
+
+type RedisManager struct {
+}
 
 func init() {
 	host := os.Getenv("REDIS_HOST")
@@ -23,4 +28,20 @@ func init() {
 }
 func NewRedisPoolConnection() redis.Conn {
 	return pool.Get()
+}
+
+func NewRedisManager() *RedisManager {
+	return &RedisManager{}
+}
+
+func (r *RedisManager) JSONGetBytes(key string) ([]byte, error) {
+	con := NewRedisPoolConnection()
+	defer con.Close()
+
+	rh := rejson.NewReJSONHandler()
+	data, err := redis.Bytes(rh.JSONGet("all-pr-index", "."))
+	if err != nil {
+		return nil, fmt.Errorf("failed to redis.JSONGet key %s: %s", key, err)
+	}
+	return data, nil
 }
