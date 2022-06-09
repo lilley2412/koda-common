@@ -11,23 +11,22 @@ import (
 )
 
 type PipelineRun struct {
-	UUID           string            `json:"uuid"`
-	Name           string            `json:"name"`
-	Namespace      string            `json:"namespace"`
-	Labels         map[string]string `json:"labels,omitempty"`
-	Annotations    map[string]string `json:"annotations,omitempty"`
-	CompletedAt    *time.Time        `json:"completedAt,omitempty"`
-	StartedAt      *time.Time        `json:"startedAt,omitempty"`
-	CreatedAt      time.Time         `json:"createdAt,omitempty"`
-	Status         PipelineStatus    `json:"status,omitempty"`
-	Tasks          []*TaskRun        `json:"tasks,omitempty"`
-	Tasks2         map[string]*TaskRun
-	TotalTasks     int `json:"totalTasks,omitempty"`
-	RunningTasks   int `json:"runningTasks,omitempty"`
-	PendingTasks   int `json:"pendingTasks,omitempty"`
-	FailedTasks    int `json:"failedTasks,omitempty"`
-	SucceededTasks int `json:"succeededTasks,omitempty"`
-	CompleteTasks  int `json:"completeTasks,omitempty"`
+	UUID           string              `json:"uuid"`
+	Name           string              `json:"name"`
+	Namespace      string              `json:"namespace"`
+	Labels         map[string]string   `json:"labels,omitempty"`
+	Annotations    map[string]string   `json:"annotations,omitempty"`
+	CompletedAt    *time.Time          `json:"completedAt,omitempty"`
+	StartedAt      *time.Time          `json:"startedAt,omitempty"`
+	CreatedAt      time.Time           `json:"createdAt,omitempty"`
+	Status         PipelineStatus      `json:"status,omitempty"`
+	Tasks          map[string]*TaskRun `json:"tasks,omitempty"`
+	TotalTasks     int                 `json:"totalTasks,omitempty"`
+	RunningTasks   int                 `json:"runningTasks,omitempty"`
+	PendingTasks   int                 `json:"pendingTasks,omitempty"`
+	FailedTasks    int                 `json:"failedTasks,omitempty"`
+	SucceededTasks int                 `json:"succeededTasks,omitempty"`
+	CompleteTasks  int                 `json:"completeTasks,omitempty"`
 }
 
 type TaskRun struct {
@@ -73,16 +72,16 @@ func (p *PipelineRun) addTaskSpecs(tasks []v1beta1.PipelineTask) error {
 
 	// index all tasks
 	for _, task := range tasks {
-		p.Tasks2[task.Name] = &TaskRun{
+		p.Tasks[task.Name] = &TaskRun{
 			TaskName: task.Name,
 		}
 	}
 
 	// add relationships
 	for _, task := range tasks {
-		tr := p.Tasks2[task.Name]
+		tr := p.Tasks[task.Name]
 		for _, ra := range task.RunAfter {
-			parent := p.Tasks2[ra]
+			parent := p.Tasks[ra]
 			// tr.Parents = append(tr.Parents, parent)
 			parent.Children = append(parent.Children, tr)
 		}
@@ -116,7 +115,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 		CreatedAt:   uns.GetCreationTimestamp().Time,
 		UUID:        string(uns.GetUID()),
 		Status:      NotStarted,
-		Tasks2:      make(map[string]*TaskRun),
+		Tasks:       make(map[string]*TaskRun),
 	}
 
 	uns.UnstructuredContent()
@@ -223,10 +222,10 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 		if taskRunStatus.Status != nil && len(taskRunStatus.Status.Conditions) > 0 {
 			cond := taskRunStatus.Status.Conditions[0]
 
-			pr.Tasks2[taskRunStatus.PipelineTaskName].PodName = taskRunStatus.Status.PodName
+			pr.Tasks[taskRunStatus.PipelineTaskName].PodName = taskRunStatus.Status.PodName
 
 			if strings.EqualFold(cond.Reason, "running") {
-				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Running
+				pr.Tasks[taskRunStatus.PipelineTaskName].Status = Running
 				// pr.Tasks = append(pr.Tasks, &TaskRun{
 				// 	Status: Running,
 				// })
@@ -238,7 +237,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 				// pr.Tasks = append(pr.Tasks, &TaskRun{
 				// 	Status: Pending,
 				// })
-				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Pending
+				pr.Tasks[taskRunStatus.PipelineTaskName].Status = Pending
 				pr.PendingTasks++
 				continue
 			}
@@ -247,7 +246,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 				// pr.Tasks = append(pr.Tasks, &TaskRun{
 				// 	Status: Success,
 				// })
-				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Success
+				pr.Tasks[taskRunStatus.PipelineTaskName].Status = Success
 				pr.SucceededTasks++
 				continue
 			}
@@ -256,7 +255,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 				// pr.Tasks = append(pr.Tasks, &TaskRun{
 				// 	Status: Failed,
 				// })
-				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Failed
+				pr.Tasks[taskRunStatus.PipelineTaskName].Status = Failed
 				pr.FailedTasks++
 				continue
 			}
@@ -264,7 +263,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 			// pr.Tasks = append(pr.Tasks, &TaskRun{
 			// 	Status: NotStarted,
 			// })
-			pr.Tasks2[taskRunStatus.PipelineTaskName].Status = NotStarted
+			pr.Tasks[taskRunStatus.PipelineTaskName].Status = NotStarted
 		}
 		// for _, c := range status.Status.Conditions {
 		// 	pr.Tasks = append(pr.Tasks, &TaskRun{
