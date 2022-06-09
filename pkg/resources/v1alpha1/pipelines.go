@@ -21,16 +21,21 @@ type PipelineRun struct {
 	CreatedAt      time.Time         `json:"createdAt,omitempty"`
 	Status         PipelineStatus    `json:"status,omitempty"`
 	Tasks          []*TaskRun        `json:"tasks,omitempty"`
-	TotalTasks     int               `json:"totalTasks,omitempty"`
-	RunningTasks   int               `json:"runningTasks,omitempty"`
-	PendingTasks   int               `json:"pendingTasks,omitempty"`
-	FailedTasks    int               `json:"failedTasks,omitempty"`
-	SucceededTasks int               `json:"succeededTasks,omitempty"`
-	CompleteTasks  int               `json:"completeTasks,omitempty"`
+	Tasks2         map[string]*TaskRun
+	TotalTasks     int `json:"totalTasks,omitempty"`
+	RunningTasks   int `json:"runningTasks,omitempty"`
+	PendingTasks   int `json:"pendingTasks,omitempty"`
+	FailedTasks    int `json:"failedTasks,omitempty"`
+	SucceededTasks int `json:"succeededTasks,omitempty"`
+	CompleteTasks  int `json:"completeTasks,omitempty"`
 }
 
 type TaskRun struct {
-	Status PipelineStatus `json:"status,omitempty"`
+	TaskName string         `json:"taskName"`
+	PodName  string         `json:"podName"`
+	Status   PipelineStatus `json:"status,omitempty"`
+	Parents  []*TaskRun     `json:"parents"`
+	Children []*TaskRun     `json:"children"`
 }
 
 type PipelineStatus int16
@@ -63,6 +68,43 @@ func (p PipelineStatus) String() string {
 	return "unknown"
 }
 
+func (p *PipelineRun) addTaskSpecs(tasks []v1beta1.PipelineTask) error {
+	p.TotalTasks = len(tasks)
+
+	// index all tasks
+	for _, task := range tasks {
+		p.Tasks2[task.Name] = &TaskRun{
+			TaskName: task.Name,
+		}
+	}
+
+	// add relationships
+	for _, task := range tasks {
+		tr := p.Tasks2[task.Name]
+		for _, ra := range task.RunAfter {
+			parent := p.Tasks2[ra]
+			tr.Parents = append(tr.Parents, parent)
+			parent.Children = append(parent.Children, tr)
+		}
+	}
+
+	// if len(p.Tasks) == 0 {
+	// 	if len(t.RunAfter) > 0 {
+	// 		return fmt.Errorf("task %s: runAfter not allowed on first task", t.Name)
+	// 	}
+	// 	p.Tasks = append(p.Tasks, &TaskRun{
+	// 		TaskSpecName: t.Name,
+	// 	})
+	// 	return nil
+	// }
+
+	// for _, ra := range t.RunAfter {
+	// 	// find all parents
+	// }
+
+	return nil
+}
+
 func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 	// defer instrument.Duration(instrument.Track("v1alpha1.NewPipelineRun"))
 
@@ -74,6 +116,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 		CreatedAt:   uns.GetCreationTimestamp().Time,
 		UUID:        string(uns.GetUID()),
 		Status:      NotStarted,
+		Tasks2:      make(map[string]*TaskRun),
 	}
 
 	uns.UnstructuredContent()
@@ -101,7 +144,12 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 			return nil, err
 		}
 	} else {
-		return pr, nil
+		return nil, fmt.Errorf("no status field")
+	}
+
+	err := pr.addTaskSpecs(pStatus.PipelineSpec.Tasks)
+	if err != nil {
+		return nil, err
 	}
 
 	// if ok {
@@ -171,47 +219,52 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 	// 		return nil, err
 	// 	}
 
-	pr.TotalTasks = len(pStatus.PipelineSpec.Tasks)
+	for _, taskRunStatus := range pStatus.TaskRuns {
+		if taskRunStatus.Status != nil && len(taskRunStatus.Status.Conditions) > 0 {
+			cond := taskRunStatus.Status.Conditions[0]
 
-	for _, status := range pStatus.TaskRuns {
-		if status.Status != nil && len(status.Status.Conditions) > 0 {
-			cond := status.Status.Conditions[0]
+			pr.Tasks2[taskRunStatus.PipelineTaskName].PodName = taskRunStatus.Status.PodName
 
 			if strings.EqualFold(cond.Reason, "running") {
-				pr.Tasks = append(pr.Tasks, &TaskRun{
-					Status: Running,
-				})
+				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Running
+				// pr.Tasks = append(pr.Tasks, &TaskRun{
+				// 	Status: Running,
+				// })
 				pr.RunningTasks++
 				continue
 			}
 
 			if strings.EqualFold(cond.Reason, "pending") {
-				pr.Tasks = append(pr.Tasks, &TaskRun{
-					Status: Pending,
-				})
+				// pr.Tasks = append(pr.Tasks, &TaskRun{
+				// 	Status: Pending,
+				// })
+				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Pending
 				pr.PendingTasks++
 				continue
 			}
 
 			if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "True") {
-				pr.Tasks = append(pr.Tasks, &TaskRun{
-					Status: Success,
-				})
+				// pr.Tasks = append(pr.Tasks, &TaskRun{
+				// 	Status: Success,
+				// })
+				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Success
 				pr.SucceededTasks++
 				continue
 			}
 
 			if strings.EqualFold(cond.Reason, "Succeeded") && strings.EqualFold(string(cond.Status), "False") {
-				pr.Tasks = append(pr.Tasks, &TaskRun{
-					Status: Failed,
-				})
+				// pr.Tasks = append(pr.Tasks, &TaskRun{
+				// 	Status: Failed,
+				// })
+				pr.Tasks2[taskRunStatus.PipelineTaskName].Status = Failed
 				pr.FailedTasks++
 				continue
 			}
 		} else {
-			pr.Tasks = append(pr.Tasks, &TaskRun{
-				Status: NotStarted,
-			})
+			// pr.Tasks = append(pr.Tasks, &TaskRun{
+			// 	Status: NotStarted,
+			// })
+			pr.Tasks2[taskRunStatus.PipelineTaskName].Status = NotStarted
 		}
 		// for _, c := range status.Status.Conditions {
 		// 	pr.Tasks = append(pr.Tasks, &TaskRun{
