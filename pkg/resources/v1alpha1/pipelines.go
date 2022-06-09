@@ -269,7 +269,7 @@ func (p *PipelineRun) StartedAtNotEqual(other *PipelineRun) bool {
 }
 
 func (p *PipelineRun) TaskStatusNotEqual(other *PipelineRun) bool {
-	return p.TotalTasks != other.TotalTasks || p.RunningTasks != other.RunningTasks
+	return p.TotalTasks != other.TotalTasks || p.RunningTasks != other.RunningTasks || p.SucceededTasks != other.SucceededTasks || p.PendingTasks != other.PendingTasks
 }
 
 // func (p *PipelineRun) SetStatus(status map[string]interface{}) {
