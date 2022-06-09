@@ -34,13 +34,13 @@ func NewRedisManager() *RedisManager {
 	return &RedisManager{}
 }
 
-func JSONGetBytes(key string) ([]byte, error) {
+func JSONGetBytes(key string, path string) ([]byte, error) {
 	con := NewRedisPoolConnection()
 	defer con.Close()
 
 	rh := rejson.NewReJSONHandler()
 	rh.SetRedigoClient(con)
-	data, err := redis.Bytes(rh.JSONGet("all-pr-index", "."))
+	data, err := redis.Bytes(rh.JSONGet(key, path))
 	if err != nil {
 		return nil, fmt.Errorf("failed to redis.JSONGet key %s: %s", key, err)
 	}
