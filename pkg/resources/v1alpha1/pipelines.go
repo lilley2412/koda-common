@@ -34,8 +34,8 @@ type TaskRun struct {
 	TaskName string         `json:"taskName"`
 	PodName  string         `json:"podName"`
 	Status   PipelineStatus `json:"status,omitempty"`
-	Parents  []*TaskRun     `json:"parents"`
-	Children []*TaskRun     `json:"children"`
+	// Parents  []*TaskRun     `json:"parents"`
+	Children []*TaskRun `json:"children"`
 }
 
 type PipelineStatus int16
@@ -83,7 +83,7 @@ func (p *PipelineRun) addTaskSpecs(tasks []v1beta1.PipelineTask) error {
 		tr := p.Tasks2[task.Name]
 		for _, ra := range task.RunAfter {
 			parent := p.Tasks2[ra]
-			tr.Parents = append(tr.Parents, parent)
+			// tr.Parents = append(tr.Parents, parent)
 			parent.Children = append(parent.Children, tr)
 		}
 	}
