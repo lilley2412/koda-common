@@ -144,7 +144,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("no status field")
+		return pr, nil
 	}
 
 	err := pr.addTaskSpecs(pStatus.PipelineSpec.Tasks)
