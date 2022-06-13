@@ -257,6 +257,12 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 				pr.FailedTasks++
 				continue
 			}
+
+			if strings.EqualFold(cond.Reason, "Failed") && strings.EqualFold(string(cond.Status), "False") && strings.EqualFold(string(cond.Type), "Succeeded") {
+				pr.Tasks[taskRunStatus.PipelineTaskName].Status = Failed
+				pr.FailedTasks++
+				continue
+			}
 		} else {
 			// pr.Tasks = append(pr.Tasks, &TaskRun{
 			// 	Status: NotStarted,
