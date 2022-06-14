@@ -328,6 +328,18 @@ func (p *PipelineRun) TaskStatusNotEqual(other *PipelineRun) bool {
 	return p.TotalTasks != other.TotalTasks || p.RunningTasks != other.RunningTasks || p.SucceededTasks != other.SucceededTasks || p.PendingTasks != other.PendingTasks
 }
 
+func (p *PipelineRun) Duration() time.Duration {
+	if p.StartedAt == nil {
+		return time.Second * 0
+	}
+
+	if p.CompletedAt == nil {
+		return time.Since(*p.StartedAt)
+	}
+
+	return p.CompletedAt.Sub(*p.StartedAt)
+}
+
 // func (p *PipelineRun) SetStatus(status map[string]interface{}) {
 
 // }
