@@ -18,6 +18,7 @@ type PipelineRun struct {
 	Annotations    map[string]string   `json:"annotations,omitempty"`
 	CompletedAt    *time.Time          `json:"completedAt,omitempty"`
 	StartedAt      *time.Time          `json:"startedAt,omitempty"`
+	Duration       *time.Duration      `json:"duration,omitempty"`
 	CreatedAt      time.Time           `json:"createdAt,omitempty"`
 	Status         PipelineStatus      `json:"status,omitempty"`
 	Tasks          map[string]*TaskRun `json:"tasks,omitempty"`
@@ -163,6 +164,8 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 	if pStatus.StartTime != nil {
 		pr.StartedAt = &pStatus.StartTime.Time
 	}
+
+	pr.setDuration()
 
 	// if r, ok := st["completionTime"]; ok {
 	// 	t, err := time.Parse(time.RFC3339, fmt.Sprintf("%s", r))
@@ -328,16 +331,19 @@ func (p *PipelineRun) TaskStatusNotEqual(other *PipelineRun) bool {
 	return p.TotalTasks != other.TotalTasks || p.RunningTasks != other.RunningTasks || p.SucceededTasks != other.SucceededTasks || p.PendingTasks != other.PendingTasks
 }
 
-func (p *PipelineRun) Duration() time.Duration {
+func (p *PipelineRun) setDuration() {
 	if p.StartedAt == nil {
-		return time.Second * 0
+		return
 	}
+
+	var t time.Duration
 
 	if p.CompletedAt == nil {
-		return time.Since(*p.StartedAt)
+		t = time.Since(*p.StartedAt)
+	} else {
+		t = p.CompletedAt.Sub(*p.StartedAt)
 	}
-
-	return p.CompletedAt.Sub(*p.StartedAt)
+	p.Duration = &t
 }
 
 // func (p *PipelineRun) SetStatus(status map[string]interface{}) {
