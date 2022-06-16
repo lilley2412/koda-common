@@ -116,6 +116,7 @@ func NewPipelineRun(uns *unstructured.Unstructured) (*PipelineRun, error) {
 		UUID:        string(uns.GetUID()),
 		Status:      NotStarted,
 		Tasks:       make(map[string]*TaskRun),
+		ID:          string(uns.GetUID()),
 	}
 
 	uns.UnstructuredContent()
