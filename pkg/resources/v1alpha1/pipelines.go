@@ -11,7 +11,7 @@ import (
 )
 
 type PipelineRun struct {
-	ID             string              `json:"_id" bson:"_id,omitempty"`
+	ID             string              `json:"-" bson:"_id,omitempty"`
 	UUID           string              `json:"uuid" bson:"uuid,omitempty"`
 	Name           string              `json:"name" bson:"name,omitempty"`
 	Namespace      string              `json:"namespace"`
