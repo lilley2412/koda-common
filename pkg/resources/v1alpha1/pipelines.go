@@ -11,9 +11,9 @@ import (
 )
 
 type PipelineRun struct {
-	ID             string              `json:"_id"`
-	UUID           string              `json:"uuid"`
-	Name           string              `json:"name"`
+	ID             string              `json:"_id" bson:"_id,omitempty"`
+	UUID           string              `json:"uuid" bson:"uuid,omitempty"`
+	Name           string              `json:"name" bson:"name,omitempty"`
 	Namespace      string              `json:"namespace"`
 	Labels         map[string]string   `json:"labels,omitempty"`
 	Annotations    map[string]string   `json:"annotations,omitempty"`
