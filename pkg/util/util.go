@@ -6,6 +6,15 @@ import (
 	"fmt"
 )
 
+func JSONRemarshal(in interface{}, out interface{}) error {
+	d, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(d, out)
+}
+
 func JSONMustPrettyPrint(in interface{}) {
 	d, err := json.Marshal(in)
 	if err != nil {

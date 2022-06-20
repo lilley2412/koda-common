@@ -11,24 +11,25 @@ import (
 )
 
 type PipelineRun struct {
-	ID             interface{}         `json:"id" bson:"_id,omitempty"`
-	UUID           string              `json:"uuid" bson:"uuid,omitempty"`
-	Name           string              `json:"name" bson:"name,omitempty"`
-	Namespace      string              `json:"namespace"`
-	Labels         map[string]string   `json:"labels,omitempty"`
-	Annotations    map[string]string   `json:"annotations,omitempty"`
-	CompletedAt    *time.Time          `json:"completedAt,omitempty"`
-	StartedAt      *time.Time          `json:"startedAt,omitempty"`
-	Duration       *time.Duration      `json:"duration,omitempty"`
-	CreatedAt      time.Time           `json:"createdAt,omitempty"`
-	Status         PipelineStatus      `json:"status,omitempty"`
-	Tasks          map[string]*TaskRun `json:"tasks,omitempty"`
-	TotalTasks     int                 `json:"totalTasks,omitempty"`
-	RunningTasks   int                 `json:"runningTasks,omitempty"`
-	PendingTasks   int                 `json:"pendingTasks,omitempty"`
-	FailedTasks    int                 `json:"failedTasks,omitempty"`
-	SucceededTasks int                 `json:"succeededTasks,omitempty"`
-	CompleteTasks  int                 `json:"completeTasks,omitempty"`
+	ID              interface{}         `json:"id" bson:"_id,omitempty"`
+	UUID            string              `json:"uuid" bson:"uuid,omitempty"`
+	Name            string              `json:"name" bson:"name,omitempty"`
+	Namespace       string              `json:"namespace"`
+	Labels          map[string]string   `json:"labels,omitempty"`
+	Annotations     map[string]string   `json:"annotations,omitempty"`
+	CompletedAt     *time.Time          `json:"completedAt,omitempty"`
+	StartedAt       *time.Time          `json:"startedAt,omitempty"`
+	Duration        *time.Duration      `json:"duration,omitempty"`
+	DurationSeconds float64             `json:"durationSeconds,omitempty"`
+	CreatedAt       time.Time           `json:"createdAt,omitempty"`
+	Status          PipelineStatus      `json:"status,omitempty"`
+	Tasks           map[string]*TaskRun `json:"tasks,omitempty"`
+	TotalTasks      int                 `json:"totalTasks,omitempty"`
+	RunningTasks    int                 `json:"runningTasks,omitempty"`
+	PendingTasks    int                 `json:"pendingTasks,omitempty"`
+	FailedTasks     int                 `json:"failedTasks,omitempty"`
+	SucceededTasks  int                 `json:"succeededTasks,omitempty"`
+	CompleteTasks   int                 `json:"completeTasks,omitempty"`
 }
 
 type TaskRun struct {
@@ -346,6 +347,7 @@ func (p *PipelineRun) setDuration() {
 		t = p.CompletedAt.Sub(*p.StartedAt)
 	}
 	p.Duration = &t
+	p.DurationSeconds = t.Seconds()
 }
 
 // func (p *PipelineRun) SetStatus(status map[string]interface{}) {
